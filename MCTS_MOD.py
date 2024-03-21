@@ -9,6 +9,7 @@ import copy
 
 import math
 import random
+import sys
 #python capture.py -r baselineTeam -b myTeamTry
 
 class Node:
@@ -77,18 +78,18 @@ class Node:
     #     else:
     #         return successor
         
-    def get_Rewards(self,action=None):
+    def get_Rewards(self,action=None, pacman=False):
         current_pos = self.gamestate.getAgentPosition(self.index)
         if current_pos == self.gamestate.getInitialAgentPosition(self.index):
             reward = 1000
         else:
-            reward = self.get_features(action=None)
+            reward = self.get_features(action=None, pacman=pacman)
         return reward
     
         
-    def get_features(self,action=None):
+    def get_features(self,action=None, pacman=False):
         our_location = self.agent.find_self(self.gamestate)
-        if self.index == 1: # we are pacman
+        if pacman == True: # we are pacman
             successor = self.agent.difference_after_movement(our_location, action)
             food_list = self.find_food(self.gamestate)
             closest_food_dist = self.closest_food_distance(successor, food_list)
@@ -107,10 +108,10 @@ class Node:
             successor = self.agent.difference_after_movement(our_location, action)
             foodList = self.find_food(self.gamestate)    
             closest_opponent, closest_food = self.closest_opponent_to_food(foodList, self.find_opponents(self.gamestate))
-            if successor == closest_opponent:
+            if successor in self.find_opponents(self.gamestate):
                 action_value = 1000
                 return action_value
-            elif successor == closest_food:
+            elif successor in foodList:
                 action_value = -500
                 return action_value
             else:
@@ -183,13 +184,15 @@ class Node:
 
 class MCTSAgent(CaptureAgent):
 
-    def chooseAction(self, gameState):
+    def chooseAction(self, gameState, pacman = False):
+
         num_iterations = 10  # Adjust this parameter as needed
         root = Node(gameState, agent=self, action = None, state = None, parent=None, root = True)
-        
+        self.pacman = pacman
         
         for _ in range(num_iterations):
 
+            print("index: {}".format(self.index))
             selected_node = self.select(root)
             expanded_node = self.expand(selected_node)
             simulation_result = self.simulate(expanded_node)
@@ -258,7 +261,7 @@ class MCTSAgent(CaptureAgent):
             new_state = self.difference_after_movement(current_node.gamestate.getAgentPosition(self.index), random_action)
             new_gamestate = current_node.gamestate.generateSuccessor(self.index, random_action)
             current_node = Node(gamestate=new_gamestate, state=new_state, agent=node.agent, action=random_action, parent=current_node)
-            total_reward += current_node.get_Rewards(action=random_action)
+            total_reward += current_node.get_Rewards(action=random_action, pacman = self.pacman)
             steps += 1
             print("total reward: {}".format(total_reward))
 
@@ -270,8 +273,6 @@ class MCTSAgent(CaptureAgent):
         while current_node.root is False and i < 100:
             current_node.visits += 1
             current_node.total_score += score
-            print("node visits: {}".format(current_node.visits))
-            print("node parent: {}".format(current_node.parent))
             current_node = current_node.parent
             i += 1
             
