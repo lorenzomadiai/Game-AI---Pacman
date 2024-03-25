@@ -89,7 +89,7 @@ class Node:
             return reward
 
         if self.depth > 300:  # If the depth of the tree is greater than 300, we stop the simulation, probably the enemies have won
-            reward = -1
+            reward = 1
             self.successor_is_terminal = True
             return reward   
 
